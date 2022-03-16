@@ -36,6 +36,9 @@ public class WeeklyScore implements DomainEntity {
 
     private LocalDate week;
 
+    @OneToMany
+    private SamePercentage samePercentageWeeklys;
+
     @ManyToOne
     private Dashboard dashboard;
 
@@ -44,7 +47,10 @@ public class WeeklyScore implements DomainEntity {
     public WeeklyScore(Dashboard dashboard, LocalDate week) {
         setWeek(week);
         setDashboard(dashboard);
+        this.samePercentageWeeklys = new SamePercentage(this);
+        udpateSamePercentage(true);
     }
+
 
     public Integer getId() { return id; }
 
@@ -83,8 +89,35 @@ public class WeeklyScore implements DomainEntity {
     }
 
     public void remove() {
+
         this.dashboard.getWeeklyScores().remove(this);
+        List<WeeklyScore> weeklyScoresSamePercentage = this.samePercentage.getWeeklyScores();
+        for (WeeklyScore ws: weeklyScoresSamePercentage) {
+            ws.updateSamePercentage(false);            
+        }
+
+        this.samePercentage = null;
         this.dashboard = null;
+
+    }
+
+
+    public void updateSamePercentage(boolean updateOthers) {
+        List<WeeklyScore> weeklyScores = dashboard.getWeeklyScores();
+        List<WeeklyScore> weeklyScoresSamePercentage = new List<WeeklyScore>();
+        
+        for (WeeklyScore ws : weeklyScores) {
+            if (ws.getPercentageCorrect() == this.percentageCorrect && ws != this) {
+                weeklyScoresSamePercentage.add(ws);
+
+                // make others update their SamePercentage's list
+                if (updateOthers) {
+                  // false to not start an infinite update loop
+                  ws.updateSamePercentage(false);
+                }
+            }
+        }
+        this.samePercentage.setWeeklyScores(weeklyScoresSamePercentage);
     }
 
     @Override
