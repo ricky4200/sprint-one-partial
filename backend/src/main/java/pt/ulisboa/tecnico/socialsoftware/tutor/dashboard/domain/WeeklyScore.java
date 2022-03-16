@@ -17,6 +17,7 @@ import java.time.temporal.TemporalAdjusters;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import static pt.ulisboa.tecnico.socialsoftware.tutor.exceptions.ErrorMessage.WEEKLY_SCORE_ALREADY_CREATED;
@@ -37,7 +38,7 @@ public class WeeklyScore implements DomainEntity {
     private LocalDate week;
 
     @OneToMany
-    private SamePercentage samePercentageWeeklys;
+    private SamePercentage samePercentage;
 
     @ManyToOne
     private Dashboard dashboard;
@@ -47,8 +48,8 @@ public class WeeklyScore implements DomainEntity {
     public WeeklyScore(Dashboard dashboard, LocalDate week) {
         setWeek(week);
         setDashboard(dashboard);
-        this.samePercentageWeeklys = new SamePercentage(this);
-        udpateSamePercentage(true);
+        this.samePercentage = new SamePercentage(this);
+        this.updateSamePercentage(true);
     }
 
 
@@ -89,28 +90,25 @@ public class WeeklyScore implements DomainEntity {
     }
 
     public void remove() {
-
         this.dashboard.getWeeklyScores().remove(this);
-        List<WeeklyScore> weeklyScoresSamePercentage = this.samePercentage.getWeeklyScores();
-        for (WeeklyScore ws: weeklyScoresSamePercentage) {
-            ws.updateSamePercentage(false);            
-        }
+        Set<WeeklyScore> weeklyScoresSamePercentage = this.samePercentage.getWeeklyScores();
+        for (WeeklyScore ws: weeklyScoresSamePercentage) 
+            ws.updateSamePercentage(false);
 
         this.samePercentage = null;
         this.dashboard = null;
-
     }
 
 
     public void updateSamePercentage(boolean updateOthers) {
-        List<WeeklyScore> weeklyScores = dashboard.getWeeklyScores();
-        List<WeeklyScore> weeklyScoresSamePercentage = new List<WeeklyScore>();
+        Set<WeeklyScore> weeklyScores = dashboard.getWeeklyScores();
+        Set<WeeklyScore> weeklyScoresSamePercentage = new HashSet<WeeklyScore>();
         
         for (WeeklyScore ws : weeklyScores) {
             if (ws.getPercentageCorrect() == this.percentageCorrect && ws != this) {
                 weeklyScoresSamePercentage.add(ws);
 
-                // make others update their SamePercentage's list
+                // make others update their SamePercentage's set
                 if (updateOthers) {
                   // false to not start an infinite update loop
                   ws.updateSamePercentage(false);
